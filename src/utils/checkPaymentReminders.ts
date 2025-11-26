@@ -22,7 +22,7 @@ export const checkPaymentReminders = async (): Promise<void> => {
     const now = new Date();
 
     const { data: leads, error } = await supabase
-        .from("chat_history")
+        .from("chat_history_test")
         .select("*")
         .not("payment_link_sent_at", "is", null)
         .eq("payment_proof_received", false)
@@ -69,21 +69,21 @@ export const checkPaymentReminders = async (): Promise<void> => {
             if (elapsedUnits >= T24 && elapsedUnits < T48 && !lead.payment_reminder_24h) {
                 console.log(`Enviando recordatorio 24H a ${finalName} (${lead.client_number})`);
                 await sendPaymentTemplate(lead.client_number, finalName, 'TEMPLATE_ID_COLTE_24H');
-                await supabase.from("chat_history").update({ payment_reminder_24h: true }).eq("id", lead.id);
+                await supabase.from("chat_history_test").update({ payment_reminder_24h: true }).eq("id", lead.id);
             }
 
             // 48 HORAS (o 4 minutos en test)
             else if (elapsedUnits >= T48 && elapsedUnits < T72 && !lead.payment_reminder_48h) {
                 console.log(`Enviando recordatorio 48H a ${finalName} (${lead.client_number})`);
                 await sendPaymentTemplate(lead.client_number, finalName, 'TEMPLATE_ID_COLTE_48H');
-                await supabase.from("chat_history").update({ payment_reminder_48h: true }).eq("id", lead.id);
+                await supabase.from("chat_history_test").update({ payment_reminder_48h: true }).eq("id", lead.id);
             }
 
             // 72 HORAS (o 6 minutos en test)
             else if (elapsedUnits >= T72 && !lead.payment_reminder_72h) {
                 console.log(`Enviando recordatorio 72H a ${finalName} (${lead.client_number})`);
                 await sendPaymentTemplate(lead.client_number, finalName, 'TEMPLATE_ID_COLTE_72H');
-                await supabase.from("chat_history").update({ payment_reminder_72h: true }).eq("id", lead.id);
+                await supabase.from("chat_history_test").update({ payment_reminder_72h: true }).eq("id", lead.id);
             }
 
         } catch (err) {

@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Check for test mode
 const isTestMode = process.env.TEST_MODE === 'true';
 const cronSchedule = isTestMode ? "*/1 * * * *" : "0 * * * *";
 

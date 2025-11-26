@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 export const checkUserName = async (phoneNumber: string): Promise<string | null> => {
     try {
         const { data, error } = await supabase
-        .from("dentix_clients") // Tabla actualizada
+        .from("dentix_clients_test") // Tabla actualizada
         .select("name")
         .eq("phone_number", phoneNumber) // Campo según tu JSON
         .single();
@@ -16,7 +16,7 @@ export const checkUserName = async (phoneNumber: string): Promise<string | null>
     
         return data?.name || null;
     } catch (error) {
-        console.error("Error buscando nombre en dentix_clients:", error);
+        console.error("Error buscando nombre en dentix_clients_test:", error);
         return null;
     }
 }
