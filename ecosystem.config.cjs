@@ -1,7 +1,7 @@
 module.exports = {
     apps: [
       {
-        name: "seguros-colte",
+        name: "cronjob-seguros-colte",
         script: "dist/index.js",
         instances: 1,
         autorestart: true,
@@ -9,7 +9,9 @@ module.exports = {
         max_memory_restart: "500M",
         env: {
             NODE_ENV: "production",
-            PORT: 3032,
+            PORT: 3034,
+            TEST_MODE: "false",
+            CRON_SCHEDULE: "*/15 * * * *"
         },
       },
     ],

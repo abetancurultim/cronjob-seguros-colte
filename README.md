@@ -28,7 +28,7 @@ El sistema se ejecuta automáticamente **cada hora** (en el minuto 0) y realiza 
     *Nota: El sistema verifica que el recordatorio específico no se haya enviado previamente para evitar duplicados.*
 
 4.  **Envío de Mensajes:**
-    *   Delega el envío del mensaje a través de una petición POST al endpoint externo: `https://ultim.online/seguros-colte/send-template`.
+    *   Delega el envío del mensaje a través de una petición POST al endpoint externo: `https://ultim.online/cronjob-seguros-colte/send-template`.
 
 ## 🛠️ Stack Tecnológico
 
@@ -83,7 +83,7 @@ El proyecto incluye un archivo `ecosystem.config.cjs` listo para ser gestionado 
 pm2 start ecosystem.config.cjs
 
 # Ver logs
-pm2 logs seguros-colte
+pm2 logs cronjob-seguros-colte
 
 # Monitorear
 pm2 monit

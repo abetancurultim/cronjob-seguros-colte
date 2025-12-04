@@ -11,23 +11,24 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkUserName = void 0;
 const supabase_1 = require("./supabase");
-// traer el name del cliente de la tabla users en supabase recibiendo como para parámetro de búsqueda el teléfono del cliente.
+// Busca el nombre y servicio del cliente en la tabla maestra 'dentix_clients'
 const checkUserName = (phoneNumber) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("Checking user name for phone number:", phoneNumber);
     try {
         const { data, error } = yield supabase_1.supabase
-            .from("users")
-            .select("name")
-            .eq("phone", phoneNumber)
+            .from("dentix_clients") // Tabla actualizada
+            .select("name, service") // Traemos también el servicio
+            .eq("phone_number", phoneNumber)
             .single();
         if (error) {
-            console.error("Error fetching user name:", error);
             return null;
         }
-        return (data === null || data === void 0 ? void 0 : data.name) || null;
+        return {
+            name: (data === null || data === void 0 ? void 0 : data.name) || null,
+            service: (data === null || data === void 0 ? void 0 : data.service) || null
+        };
     }
     catch (error) {
-        console.error("Error:", error);
+        console.error("Error buscando datos en dentix_clients:", error);
         return null;
     }
 });

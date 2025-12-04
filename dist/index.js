@@ -13,14 +13,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_schedule_1 = __importDefault(require("node-schedule"));
-const checkConversations_1 = require("./utils/checkConversations");
-node_schedule_1.default.scheduleJob("0 * * * *", () => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("Running cron job...");
-    yield (0, checkConversations_1.checkConversations)();
+const checkPaymentReminders_1 = require("./utils/checkPaymentReminders");
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+// Check for test mode
+const isTestMode = process.env.TEST_MODE === 'true';
+const defaultSchedule = isTestMode ? "*/1 * * * *" : "*/15 * * * *"; // Cada minuto en test, cada 15 min en prod
+const cronSchedule = process.env.CRON_SCHEDULE || defaultSchedule;
+console.log(`🚀 Cronjob Seguros Colte iniciado...`);
+console.log(`   - Modo: ${isTestMode ? 'TEST' : 'PROD'}`);
+console.log(`   - Schedule: ${cronSchedule}`);
+node_schedule_1.default.scheduleJob(cronSchedule, () => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(`[${new Date().toLocaleTimeString()}] Ejecutando chequeo de recordatorios...`);
+    yield (0, checkPaymentReminders_1.checkPaymentReminders)();
 }));
-//! Ejecutar el cronjob cada minuto (para pruebas)
-// schedule.scheduleJob("* * * * *", async () => {
-//   console.log("Running cron job...");
-//   await checkConversations();
-// });
-console.log("🚀 Cronjob iniciado y ejecutándose en segundo plano...");
