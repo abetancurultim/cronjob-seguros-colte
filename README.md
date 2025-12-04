@@ -1,41 +1,46 @@
 # Cronjob Seguros Colte - Recordatorios de Pago
 
-Este servicio es un proceso en segundo plano (Cronjob) diseñado para automatizar el seguimiento de pagos pendientes de los clientes de **Seguros Colte**. Su objetivo es enviar recordatorios escalonados vía WhatsApp a aquellos usuarios que han recibido un link de pago pero no han enviado su comprobante.
+Este servicio es un proceso en segundo plano (Cronjob) diseñado para automatizar el seguimiento de pagos pendientes de los clientes de **Seguros Colte**. Su objetivo es enviar recordatorios escalonados vía WhatsApp a aquellos usuarios que han recibido un link de pago pero no han enviado su comprobante, y detener automáticamente los recordatorios si el pago se detecta como exitoso.
 
 ## 🚀 Flujo de Trabajo (Producción)
 
-El sistema se ejecuta automáticamente **cada hora** (en el minuto 0) y realiza las siguientes validaciones:
+El sistema se ejecuta automáticamente **cada 15 minutos** y realiza las siguientes operaciones en orden:
 
-1.  **Consulta de Candidatos:** Busca en la base de datos Supabase (`chat_history`) a los clientes que cumplan:
-    *   Se les envió link de pago (`payment_link_sent_at` no es nulo).
-    *   **NO** han enviado comprobante (`payment_proof_received` es `false`).
-    *   **NO** han completado el ciclo de recordatorios (`payment_reminder_72h` es `false`).
+### 1. Sincronización de Pagos Exitosos (`syncSuccessfulPayments`)
+Antes de enviar cualquier mensaje, el sistema verifica si los usuarios ya han pagado para evitar cobros innecesarios.
+*   Consulta la tabla `payments_logs` buscando pagos con estado **"Exitosa"** de los últimos 5 días.
+*   Cruza estos pagos con los chats pendientes en `chat_history` usando el número de teléfono.
+*   Si hay coincidencia, marca el chat como `payment_proof_received = true`, deteniendo así el ciclo de recordatorios.
 
-2.  **Resolución de Identidad:**
-    *   Intenta obtener el nombre oficial del cliente cruzando el número de teléfono con la tabla maestra `dentix_clients`.
-    *   Si no existe, usa el nombre capturado en el chat.
-    *   Si no hay datos, usa "Usuario".
+### 2. Consulta de Candidatos a Recordatorio
+Busca en la base de datos Supabase (`chat_history`) a los clientes que cumplan:
+*   Se les envió link de pago (`payment_link_sent_at` no es nulo).
+*   **NO** han enviado comprobante (`payment_proof_received` es `false`).
+*   **NO** han completado el ciclo de recordatorios (`payment_reminder_72h` es `false`).
 
-3.  **Ventanas de Tiempo y Envío:**
-    Calcula el tiempo transcurrido desde el envío del link y ejecuta acciones según la ventana:
+### 3. Resolución de Identidad y Servicio
+Para personalizar el mensaje, el sistema intenta obtener la mejor información disponible:
+*   **Nombre:** Busca en la tabla maestra `dentix_clients`. Si no existe, usa el nombre del chat. Si falla, usa "Usuario".
+*   **Servicio:** Busca en `dentix_clients`. Si no existe, usa el del chat. Default: "Bienestar".
+*   **Link de Pago:** Asigna el ID del link de pago correspondiente al servicio (actualmente por defecto para "Bienestar").
 
-    | Tiempo Transcurrido | Acción | Template ID | Actualización BD |
-    | :--- | :--- | :--- | :--- |
-    | **24 a 47 horas** | Primer Recordatorio | `TEMPLATE_ID_COLTE_24H` | `payment_reminder_24h = true` |
-    | **48 a 71 horas** | Segundo Recordatorio | `TEMPLATE_ID_COLTE_48H` | `payment_reminder_48h = true` |
-    | **72 horas o más** | Último Recordatorio | `TEMPLATE_ID_COLTE_72H` | `payment_reminder_72h = true` |
+### 4. Ventanas de Tiempo y Envío
+Calcula el tiempo transcurrido desde el envío del link original y ejecuta acciones según la ventana. El envío se realiza **directamente usando la API de Twilio (Content API)**.
 
-    *Nota: El sistema verifica que el recordatorio específico no se haya enviado previamente para evitar duplicados.*
+| Tiempo Transcurrido | Acción | Variable de Entorno (Template SID) | Actualización BD |
+| :--- | :--- | :--- | :--- |
+| **24 a 47 horas** | Primer Recordatorio | `TWILIO_CONTENT_SID_24H` | `payment_reminder_24h = true` |
+| **48 a 71 horas** | Segundo Recordatorio | `TWILIO_CONTENT_SID_48H` | `payment_reminder_48h = true` |
+| **72 horas o más** | Último Recordatorio | `TWILIO_CONTENT_SID_72H` | `payment_reminder_72h = true` |
 
-4.  **Envío de Mensajes:**
-    *   Delega el envío del mensaje a través de una petición POST al endpoint externo: `https://ultim.online/cronjob-seguros-colte/send-template`.
+*Nota: El sistema verifica que el recordatorio específico no se haya enviado previamente para evitar duplicados.*
 
 ## 🛠️ Stack Tecnológico
 
 *   **Runtime:** Node.js & TypeScript
 *   **Base de Datos:** Supabase (PostgreSQL)
 *   **Scheduling:** node-schedule
-*   **HTTP Client:** Axios
+*   **Mensajería:** Twilio SDK (WhatsApp Content API)
 *   **Process Manager:** PM2 (para despliegue)
 
 ## ⚙️ Configuración y Variables de Entorno
@@ -47,9 +52,19 @@ El proyecto requiere un archivo `.env` en la raíz con las siguientes variables:
 SUPABASE_URL=https://tu-proyecto.supabase.co
 SUPABASE_KEY=tu-service-role-key
 
+# Twilio Configuration
+TWILIO_ACCOUNT_SID=AC...
+TWILIO_AUTH_TOKEN=...
+TWILIO_PHONE_NUMBER=+5742044840
+
+# Twilio Content SIDs (Templates de WhatsApp)
+TWILIO_CONTENT_SID_24H=HX...
+TWILIO_CONTENT_SID_48H=HX...
+TWILIO_CONTENT_SID_72H=HX...
+
 # Configuración del Entorno
-# 'true' para activar modo pruebas (minutos en vez de horas), 'false' para producción.
-TEST_MODE=false 
+TEST_MODE=false # true para ciclos de minutos, false para horas
+CRON_SCHEDULE="*/15 * * * *" # Opcional, por defecto cada 15 min en PROD
 ```
 
 ## 📦 Instalación y Ejecución
@@ -99,7 +114,7 @@ Para facilitar la validación sin esperar días, el sistema incluye un **Modo Te
     *   Recordatorio 24h -> Se envía a los **2 minutos**.
     *   Recordatorio 48h -> Se envía a los **4 minutos**.
     *   Recordatorio 72h -> Se envía a los **6 minutos**.
-4.  Los envíos de WhatsApp se simulan (se muestran en consola `[MOCK SEND]`) para no gastar saldo ni molestar a usuarios reales.
+4.  **IMPORTANTE:** En modo test, los mensajes **SÍ se envían realmente** a los números registrados si el código no tiene el `return` comentado (verificar `checkPaymentReminders.ts`).
 
 ## 🗃️ Estructura de Base de Datos Requerida
 
@@ -115,3 +130,12 @@ Tabla: `chat_history`
 | `payment_reminder_24h` | boolean | Flag de envío 24h |
 | `payment_reminder_48h` | boolean | Flag de envío 48h |
 | `payment_reminder_72h` | boolean | Flag de envío 72h |
+
+Tabla: `payments_logs` (Para sincronización)
+
+| Columna | Tipo | Descripción |
+| :--- | :--- | :--- |
+| `payer_phone` | text | Teléfono del pagador |
+| `status_name` | text | Estado del pago (debe ser "Exitosa") |
+| `created_at` | timestamptz | Fecha del pago |
+
