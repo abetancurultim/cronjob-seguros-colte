@@ -13,17 +13,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_schedule_1 = __importDefault(require("node-schedule"));
-const checkPaymentReminders_1 = require("./utils/checkPaymentReminders");
+const processSubscriptions_1 = require("./utils/processSubscriptions");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 // Check for test mode
 const isTestMode = process.env.TEST_MODE === 'true';
-const defaultSchedule = isTestMode ? "*/1 * * * *" : "*/15 * * * *"; // Cada minuto en test, cada 15 min en prod
-const cronSchedule = process.env.CRON_SCHEDULE || defaultSchedule;
+// Schedules
+// const remindersSchedule = process.env.REMINDERS_CRON_SCHEDULE || (isTestMode ? "*/2 * * * *" : "*/15 * * * *");
+const subscriptionsSchedule = process.env.SUBSCRIPTIONS_CRON_SCHEDULE || (isTestMode ? "*/2 * * * *" : "0 5 * * *"); // Por defecto 5:00 AM en prod
 console.log(`🚀 Cronjob Seguros Colte iniciado...`);
 console.log(`   - Modo: ${isTestMode ? 'TEST' : 'PROD'}`);
-console.log(`   - Schedule: ${cronSchedule}`);
-node_schedule_1.default.scheduleJob(cronSchedule, () => __awaiter(void 0, void 0, void 0, function* () {
-    console.log(`[${new Date().toLocaleTimeString()}] Ejecutando chequeo de recordatorios...`);
-    yield (0, checkPaymentReminders_1.checkPaymentReminders)();
+// console.log(`   - Schedule Recordatorios: ${remindersSchedule}`);
+console.log(`   - Schedule Suscripciones: ${subscriptionsSchedule}`);
+// Job para Recordatorios de Pago
+// schedule.scheduleJob(remindersSchedule, async () => {
+//   console.log(`[${new Date().toLocaleTimeString()}] Ejecutando chequeo de recordatorios...`);
+//   await checkPaymentReminders();
+// });
+// Job para Procesamiento de Suscripciones
+node_schedule_1.default.scheduleJob(subscriptionsSchedule, () => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(`[${new Date().toLocaleTimeString()}] Ejecutando procesamiento de suscripciones...`);
+    yield (0, processSubscriptions_1.processSubscriptions)();
 }));
