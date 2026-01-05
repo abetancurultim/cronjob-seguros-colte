@@ -22,7 +22,7 @@ interface Subscription {
 }
 
 export const processSubscriptions = async () => {
-    console.log('🔄 [Subscriptions] Iniciando procesamiento de suscripciones...');
+    console.log('[Subscriptions] Iniciando procesamiento de suscripciones...');
 
     const isTestMode = process.env.TEST_MODE === 'true';
     const now = new Date();
@@ -76,7 +76,7 @@ export const processSubscriptions = async () => {
 };
 
 const processSingleSubscription = async (sub: Subscription) => {
-    console.log(`💳 Procesando cobro para cliente ${sub.identification_doc} - Suscripción: ${sub.id}`);
+    console.log(`Procesando cobro para cliente ${sub.identification_doc} - Suscripción: ${sub.id}`);
 
     // PASO 1: ObtenerPersonaPorDocumento
     // Aquí obtenemos el card_uuid y confirmamos el idperson
